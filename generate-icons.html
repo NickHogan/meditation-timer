@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #1a1a1a; color: white; }
+        canvas { border: 1px solid #333; margin: 10px; }
+        button { padding: 15px 30px; font-size: 18px; cursor: pointer; margin: 10px; }
+        .icons { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+        a { color: #00b894; }
+    </style>
+</head>
+<body>
+    <h1>Generate PWA Icons</h1>
+    <p>Click the button below to generate and download the PWA icons.</p>
+    <button onclick="generateIcons()">Generate & Download Icons</button>
+
+    <div class="icons">
+        <div>
+            <h3>192x192</h3>
+            <canvas id="canvas192" width="192" height="192"></canvas>
+        </div>
+        <div>
+            <h3>512x512</h3>
+            <canvas id="canvas512" width="512" height="512"></canvas>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(ctx, size) {
+            const s = size / 512;
+
+            // Black circle background
+            ctx.beginPath();
+            ctx.arc(256 * s, 256 * s, 256 * s, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
+            ctx.fill();
+
+            // Semicircle centered, flat edge at middle
+            ctx.beginPath();
+            ctx.arc(256 * s, 256 * s, 90 * s, Math.PI, 0);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
+
+        function generateIcons() {
+            const sizes = [192, 512];
+
+            sizes.forEach(size => {
+                const canvas = document.getElementById(`canvas${size}`);
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, size, size);
+                drawIcon(ctx, size);
+
+                // Download
+                const link = document.createElement('a');
+                link.download = `icon-${size}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+
+            alert('Icons downloaded! Move icon-192.png and icon-512.png to your meditation_timer folder.');
+        }
+
+        // Draw previews on load
+        window.onload = () => {
+            [192, 512].forEach(size => {
+                const canvas = document.getElementById(`canvas${size}`);
+                const ctx = canvas.getContext('2d');
+                drawIcon(ctx, size);
+            });
+        };
+    </script>
+</body>
+</html>

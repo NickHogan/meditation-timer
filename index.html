@@ -184,7 +184,7 @@
 
         // State
         let durationMinutes = 10;
-        let intervalMinutes = 5;
+        let intervalSecs = 300; // stored in seconds
         let timerInterval = null;
         let totalSeconds = 0;
         let initialSeconds = 0;
@@ -195,7 +195,7 @@
         function saveSettings() {
             localStorage.setItem('meditationSettings', JSON.stringify({
                 duration: durationMinutes,
-                interval: intervalMinutes
+                intervalSecs: intervalSecs
             }));
         }
 
@@ -205,7 +205,7 @@
                 if (saved) {
                     const settings = JSON.parse(saved);
                     durationMinutes = settings.duration || 10;
-                    intervalMinutes = settings.interval || 5;
+                    intervalSecs = settings.intervalSecs || 300;
                 }
             } catch (e) {
                 console.log('Could not load settings:', e);
@@ -270,7 +270,22 @@
         }
 
         function updateIntervalDisplay() {
-            intervalDisplay.textContent = formatMinutes(intervalMinutes);
+            intervalDisplay.textContent = formatTime(intervalSecs);
+        }
+
+        // Interval stepping: 15s increments below 5min, 60s above
+        function stepInterval(current, delta) {
+            let newVal;
+            if (current < 300) {
+                // Below 5 min: 15 second steps
+                newVal = current + (delta * 15);
+                if (newVal >= 300) newVal = Math.round(newVal / 60) * 60;
+            } else {
+                // At or above 5 min: 60 second steps
+                newVal = current + (delta * 60);
+                if (newVal < 300) newVal = 285; // 4:45 when stepping down from 5:00
+            }
+            return Math.min(3600, Math.max(15, newVal));
         }
 
         // Setup bars
@@ -282,13 +297,45 @@
             updateDurationDisplay
         );
 
-        setupBar(
-            barInterval,
-            () => intervalMinutes,
-            (v) => { intervalMinutes = v; },
-            60, // max 60 minute intervals
-            updateIntervalDisplay
-        );
+        // Custom interval bar with stepping
+        (function() {
+            const barEl = barInterval;
+            let isDragging = false;
+            let startX = 0;
+            let startValue = 0;
+            const sensitivity = 8;
+
+            function onStart(e) {
+                isDragging = true;
+                startX = e.touches ? e.touches[0].clientX : e.clientX;
+                startValue = intervalSecs;
+                e.preventDefault();
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+                const deltaX = currentX - startX;
+                const steps = Math.round(deltaX / sensitivity);
+                intervalSecs = stepInterval(startValue, steps);
+                updateIntervalDisplay();
+                e.preventDefault();
+            }
+
+            function onEnd() {
+                if (isDragging) {
+                    isDragging = false;
+                    saveSettings();
+                }
+            }
+
+            barEl.addEventListener('mousedown', onStart);
+            barEl.addEventListener('touchstart', onStart, { passive: false });
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchend', onEnd);
+        })();
 
         // Initialize displays
         updateDurationDisplay();
@@ -312,7 +359,7 @@
         function startTimer() {
             totalSeconds = durationMinutes * 60;
             initialSeconds = totalSeconds;
-            intervalSeconds = intervalMinutes * 60;
+            intervalSeconds = intervalSecs;
 
             if (intervalSeconds > 0) {
                 nextIntervalAt = totalSeconds - intervalSeconds;
