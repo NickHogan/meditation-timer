@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1a1a2e">
+    <meta name="theme-color" content="#000000">
     <meta name="description" content="Simple meditation timer with interval bells">
     <title>Meditation Timer</title>
     <link rel="manifest" href="manifest.json">
@@ -18,195 +18,86 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+            background: #000;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #e8e8e8;
+            color: #fff;
             padding: 20px;
             overflow: hidden;
         }
 
         .container {
-            text-align: center;
-            max-width: 380px;
             width: 100%;
+            max-width: 300px;
         }
 
-        h1 {
-            font-size: 1.2rem;
-            margin-bottom: 1.5rem;
-            font-weight: 300;
-            letter-spacing: 4px;
-            opacity: 0.7;
-            text-transform: uppercase;
+        /* Control Row */
+        .control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
         }
 
-        /* Dial Container */
-        .dial-container {
-            position: relative;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto 1.5rem;
+        .control-value {
+            font-size: 0.85rem;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+            color: #444;
+            min-width: 50px;
+            text-align: right;
         }
 
-        .dial {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            border-radius: 50%;
+        .control-bar {
+            flex: 1;
+            height: 32px;
+            background: #111;
+            border-radius: 4px;
             cursor: ew-resize;
             touch-action: none;
         }
 
-        /* Duration Dial (outer) */
-        .dial-duration {
-            width: 280px;
-            height: 280px;
-            background: conic-gradient(from -90deg, #4a9eff 0deg, #4a9eff var(--angle, 90deg), rgba(255,255,255,0.1) var(--angle, 90deg), rgba(255,255,255,0.1) 360deg);
-            box-shadow:
-                0 0 60px rgba(74, 158, 255, 0.3),
-                inset 0 0 60px rgba(0,0,0,0.5);
-        }
-
-        .dial-duration::before {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            bottom: 15px;
-            background: linear-gradient(145deg, #1e1e3a, #151530);
+        /* Circle Buttons */
+        .btn-circle {
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
-        }
-
-        /* Interval Dial (inner) */
-        .dial-interval {
-            width: 160px;
-            height: 160px;
-            background: conic-gradient(from -90deg, #ff6b9d 0deg, #ff6b9d var(--angle, 45deg), rgba(255,255,255,0.08) var(--angle, 45deg), rgba(255,255,255,0.08) 360deg);
-            box-shadow:
-                0 0 40px rgba(255, 107, 157, 0.2),
-                inset 0 0 30px rgba(0,0,0,0.5);
-            z-index: 2;
-        }
-
-        .dial-interval::before {
-            content: '';
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            right: 12px;
-            bottom: 12px;
-            background: linear-gradient(145deg, #1e1e3a, #151530);
-            border-radius: 50%;
-        }
-
-        /* Dial knob indicator */
-        .dial-knob {
-            position: absolute;
-            width: 16px;
-            height: 16px;
-            background: #fff;
-            border-radius: 50%;
-            top: 8px;
-            left: 50%;
-            transform: translateX(-50%);
-            box-shadow: 0 0 10px rgba(255,255,255,0.8);
-            z-index: 3;
-        }
-
-        .dial-interval .dial-knob {
-            width: 12px;
-            height: 12px;
-            top: 6px;
-        }
-
-        /* Center display */
-        .dial-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 10;
-            text-align: center;
-            pointer-events: none;
-        }
-
-        .time-display {
-            font-size: 2.8rem;
-            font-weight: 200;
-            font-variant-numeric: tabular-nums;
-            line-height: 1;
-            color: #fff;
-        }
-
-        .time-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.5;
-            margin-top: 0.3rem;
-        }
-
-        .interval-display {
-            font-size: 0.9rem;
-            color: #ff6b9d;
-            margin-top: 0.8rem;
-            opacity: 0.9;
-        }
-
-        /* Tick marks */
-        .tick-marks {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .tick {
-            position: absolute;
-            width: 2px;
-            height: 8px;
-            background: rgba(255,255,255,0.3);
-            top: 4px;
-            left: 50%;
-            transform-origin: center 136px;
-        }
-
-        .tick.major {
-            height: 12px;
-            background: rgba(255,255,255,0.6);
-        }
-
-        /* Start Button */
-        .btn-start {
-            width: 100%;
-            padding: 1.1rem 2rem;
-            font-size: 1rem;
-            font-weight: 500;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            border: none;
-            border-radius: 50px;
+            border: 1px solid #333;
+            background: transparent;
             cursor: pointer;
-            background: linear-gradient(135deg, #4a9eff 0%, #6c5ce7 100%);
-            color: #fff;
-            box-shadow: 0 10px 30px rgba(74, 158, 255, 0.3);
-            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 3rem auto 0;
+            transition: border-color 0.2s;
         }
 
-        .btn-start:active {
-            transform: scale(0.98);
-            box-shadow: 0 5px 20px rgba(74, 158, 255, 0.3);
+        .btn-circle:hover {
+            border-color: #555;
         }
 
-        /* Timer Display Screen */
+        .btn-circle:active {
+            border-color: #666;
+        }
+
+        /* Stop button - circle within circle */
+        .btn-stop-inner {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid #333;
+            background: transparent;
+            pointer-events: none;
+        }
+
+        .btn-circle:hover .btn-stop-inner {
+            border-color: #555;
+        }
+
+        /* Timer Screen */
         .timer-screen {
             display: none;
         }
@@ -219,137 +110,57 @@
             display: none;
         }
 
-        .timer-circle {
-            position: relative;
-            width: 280px;
-            height: 280px;
-            margin: 0 auto 1.5rem;
-        }
-
-        .timer-ring {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: conic-gradient(from -90deg, #4a9eff var(--progress, 100%), rgba(255,255,255,0.1) var(--progress, 100%));
-            box-shadow:
-                0 0 60px rgba(74, 158, 255, 0.3),
-                inset 0 0 60px rgba(0,0,0,0.5);
-        }
-
-        .timer-ring::before {
-            content: '';
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            bottom: 15px;
-            background: linear-gradient(145deg, #1e1e3a, #151530);
-            border-radius: 50%;
-        }
-
-        .timer-center {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            text-align: center;
-        }
-
         .timer-time {
-            font-size: 3.5rem;
-            font-weight: 200;
+            font-size: 3rem;
+            font-weight: 400;
             font-variant-numeric: tabular-nums;
-            color: #fff;
-        }
-
-        .timer-status {
-            font-size: 0.8rem;
-            text-transform: uppercase;
+            color: #444;
+            text-align: center;
             letter-spacing: 2px;
-            opacity: 0.6;
-            margin-top: 0.5rem;
         }
 
-        .btn-stop {
+        .timer-progress {
             width: 100%;
-            padding: 1.1rem 2rem;
-            font-size: 1rem;
-            font-weight: 500;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            background: rgba(255,255,255,0.1);
-            color: #fff;
-            transition: transform 0.2s, background 0.2s;
+            height: 1px;
+            background: #1a1a1a;
+            margin: 2rem 0;
         }
 
-        .btn-stop:active {
-            transform: scale(0.98);
-            background: rgba(255,255,255,0.15);
-        }
-
-        .interval-info {
-            font-size: 0.8rem;
-            opacity: 0.5;
-            margin-top: 1rem;
-        }
-
-        /* Instructions */
-        .instructions {
-            font-size: 0.7rem;
-            opacity: 0.4;
-            margin-top: 1rem;
-            line-height: 1.6;
+        .timer-progress-bar {
+            height: 100%;
+            background: #333;
+            transition: width 1s linear;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Meditation</h1>
-
         <!-- Setup Screen -->
         <div class="setup-screen" id="setupScreen">
-            <div class="dial-container">
-                <!-- Duration Dial (outer) -->
-                <div class="dial dial-duration" id="dialDuration" style="--angle: 90deg;">
-                    <div class="dial-knob"></div>
-                    <div class="tick-marks" id="tickMarks"></div>
-                </div>
-
-                <!-- Interval Dial (inner) -->
-                <div class="dial dial-interval" id="dialInterval" style="--angle: 45deg;">
-                    <div class="dial-knob"></div>
-                </div>
-
-                <!-- Center Display -->
-                <div class="dial-center">
-                    <div class="time-display" id="durationDisplay">10:00</div>
-                    <div class="time-label">Duration</div>
-                    <div class="interval-display" id="intervalDisplay">Bell every 5 min</div>
-                </div>
+            <div class="control">
+                <div class="control-value" id="durationDisplay">10:00</div>
+                <div class="control-bar" id="barDuration"></div>
             </div>
 
-            <button class="btn-start" id="startBtn">Begin</button>
+            <div class="control">
+                <div class="control-value" id="intervalDisplay">5:00</div>
+                <div class="control-bar" id="barInterval"></div>
+            </div>
 
-            <p class="instructions">
-                Drag left/right &nbsp;&bull;&nbsp; Outer: Duration &nbsp;&bull;&nbsp; Inner: Interval
-            </p>
+            <button class="btn-circle" id="startBtn"></button>
         </div>
 
         <!-- Timer Screen -->
         <div class="timer-screen" id="timerScreen">
-            <div class="timer-circle">
-                <div class="timer-ring" id="timerRing" style="--progress: 100%;"></div>
-                <div class="timer-center">
-                    <div class="timer-time" id="timeRemaining">10:00</div>
-                    <div class="timer-status" id="status">Meditating</div>
-                </div>
+            <div class="timer-time" id="timeRemaining">10:00</div>
+
+            <div class="timer-progress">
+                <div class="timer-progress-bar" id="progressBar" style="width: 100%;"></div>
             </div>
 
-            <button class="btn-stop" id="stopBtn">End Session</button>
-            <p class="interval-info" id="intervalInfo"></p>
+            <button class="btn-circle" id="stopBtn">
+                <div class="btn-stop-inner"></div>
+            </button>
         </div>
     </div>
 
@@ -361,14 +172,12 @@
         // Elements
         const setupScreen = document.getElementById('setupScreen');
         const timerScreen = document.getElementById('timerScreen');
-        const dialDuration = document.getElementById('dialDuration');
-        const dialInterval = document.getElementById('dialInterval');
+        const barDuration = document.getElementById('barDuration');
+        const barInterval = document.getElementById('barInterval');
         const durationDisplay = document.getElementById('durationDisplay');
         const intervalDisplay = document.getElementById('intervalDisplay');
         const timeRemaining = document.getElementById('timeRemaining');
-        const timerRing = document.getElementById('timerRing');
-        const statusEl = document.getElementById('status');
-        const intervalInfo = document.getElementById('intervalInfo');
+        const progressBar = document.getElementById('progressBar');
         const startBtn = document.getElementById('startBtn');
         const stopBtn = document.getElementById('stopBtn');
         const bellSound = document.getElementById('bellSound');
@@ -406,34 +215,12 @@
         // Load saved settings
         loadSettings();
 
-        // Generate tick marks for duration dial
-        const tickMarks = document.getElementById('tickMarks');
-        for (let i = 0; i < 60; i++) {
-            const tick = document.createElement('div');
-            tick.className = 'tick' + (i % 5 === 0 ? ' major' : '');
-            tick.style.transform = `translateX(-50%) rotate(${i * 6}deg)`;
-            tickMarks.appendChild(tick);
-        }
-
-        // Dial interaction (horizontal drag like Mac volume knob)
-        function setupDial(dialEl, getValue, setValue, maxValue, updateDisplay) {
+        // Bar interaction (horizontal drag)
+        function setupBar(barEl, getValue, setValue, maxValue, updateDisplay) {
             let isDragging = false;
             let startX = 0;
             let startValue = 0;
             const sensitivity = 2; // pixels per unit
-
-            function updateVisual() {
-                const value = getValue();
-                const angle = (value / maxValue) * 360;
-                dialEl.style.setProperty('--angle', `${angle}deg`);
-
-                // Rotate knob
-                const knob = dialEl.querySelector('.dial-knob');
-                if (knob) {
-                    knob.style.transform = `translateX(-50%) rotate(${angle}deg)`;
-                    knob.style.transformOrigin = `center ${dialEl.offsetWidth / 2}px`;
-                }
-            }
 
             function onStart(e) {
                 isDragging = true;
@@ -449,7 +236,6 @@
                 const deltaValue = Math.round(deltaX / sensitivity);
                 const newValue = Math.min(maxValue, Math.max(1, startValue + deltaValue));
                 setValue(newValue);
-                updateVisual();
                 updateDisplay();
                 e.preventDefault();
             }
@@ -461,15 +247,12 @@
                 }
             }
 
-            dialEl.addEventListener('mousedown', onStart);
-            dialEl.addEventListener('touchstart', onStart, { passive: false });
+            barEl.addEventListener('mousedown', onStart);
+            barEl.addEventListener('touchstart', onStart, { passive: false });
             window.addEventListener('mousemove', onMove);
             window.addEventListener('touchmove', onMove, { passive: false });
             window.addEventListener('mouseup', onEnd);
             window.addEventListener('touchend', onEnd);
-
-            // Initialize visual
-            updateVisual();
         }
 
         function formatMinutes(mins) {
@@ -487,27 +270,23 @@
         }
 
         function updateIntervalDisplay() {
-            if (intervalMinutes === 0) {
-                intervalDisplay.textContent = 'No interval bells';
-            } else {
-                intervalDisplay.textContent = `Bell every ${intervalMinutes} min`;
-            }
+            intervalDisplay.textContent = formatMinutes(intervalMinutes);
         }
 
-        // Setup dials
-        setupDial(
-            dialDuration,
+        // Setup bars
+        setupBar(
+            barDuration,
             () => durationMinutes,
             (v) => { durationMinutes = v; },
-            60, // max 60 minutes
+            180, // max 3 hours
             updateDurationDisplay
         );
 
-        setupDial(
-            dialInterval,
+        setupBar(
+            barInterval,
             () => intervalMinutes,
             (v) => { intervalMinutes = v; },
-            30, // max 30 minute intervals
+            60, // max 60 minute intervals
             updateIntervalDisplay
         );
 
@@ -537,24 +316,21 @@
 
             if (intervalSeconds > 0) {
                 nextIntervalAt = totalSeconds - intervalSeconds;
-                intervalInfo.textContent = `Bell every ${intervalMinutes} minute${intervalMinutes > 1 ? 's' : ''}`;
             } else {
                 nextIntervalAt = -1;
-                intervalInfo.textContent = 'No interval bells';
             }
 
             setupScreen.classList.add('hidden');
             timerScreen.classList.add('active');
             timeRemaining.textContent = formatTime(totalSeconds);
-            statusEl.textContent = 'Meditating';
-            updateTimerRing();
+            updateProgress();
 
             playBell(1);
 
             timerInterval = setInterval(() => {
                 totalSeconds--;
                 timeRemaining.textContent = formatTime(totalSeconds);
-                updateTimerRing();
+                updateProgress();
 
                 if (intervalSeconds > 0 && totalSeconds === nextIntervalAt && totalSeconds > 0) {
                     playBell(1);
@@ -563,15 +339,14 @@
 
                 if (totalSeconds <= 0) {
                     clearInterval(timerInterval);
-                    statusEl.textContent = 'Complete';
                     playBell(3);
                 }
             }, 1000);
         }
 
-        function updateTimerRing() {
+        function updateProgress() {
             const progress = (totalSeconds / initialSeconds) * 100;
-            timerRing.style.setProperty('--progress', `${progress}%`);
+            progressBar.style.width = `${progress}%`;
         }
 
         function stopTimer() {
