@@ -58,12 +58,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             border-radius: 50%;
-            cursor: grab;
+            cursor: ew-resize;
             touch-action: none;
-        }
-
-        .dial:active {
-            cursor: grabbing;
         }
 
         /* Duration Dial (outer) */
@@ -338,7 +334,7 @@
             <button class="btn-start" id="startBtn">Begin</button>
 
             <p class="instructions">
-                Outer ring: Duration &nbsp;&bull;&nbsp; Inner ring: Interval
+                Drag left/right &nbsp;&bull;&nbsp; Outer: Duration &nbsp;&bull;&nbsp; Inner: Interval
             </p>
         </div>
 
@@ -386,6 +382,30 @@
         let intervalSeconds = 0;
         let nextIntervalAt = 0;
 
+        // Settings persistence
+        function saveSettings() {
+            localStorage.setItem('meditationSettings', JSON.stringify({
+                duration: durationMinutes,
+                interval: intervalMinutes
+            }));
+        }
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('meditationSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    durationMinutes = settings.duration || 10;
+                    intervalMinutes = settings.interval || 5;
+                }
+            } catch (e) {
+                console.log('Could not load settings:', e);
+            }
+        }
+
+        // Load saved settings
+        loadSettings();
+
         // Generate tick marks for duration dial
         const tickMarks = document.getElementById('tickMarks');
         for (let i = 0; i < 60; i++) {
@@ -395,24 +415,16 @@
             tickMarks.appendChild(tick);
         }
 
-        // Dial interaction
+        // Dial interaction (horizontal drag like Mac volume knob)
         function setupDial(dialEl, getValue, setValue, maxValue, updateDisplay) {
             let isDragging = false;
+            let startX = 0;
+            let startValue = 0;
+            const sensitivity = 2; // pixels per unit
 
-            function getAngleFromEvent(e) {
-                const rect = dialEl.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-                let angle = Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI) + 90;
-                if (angle < 0) angle += 360;
-                return angle;
-            }
-
-            function updateFromAngle(angle) {
-                const value = Math.round((angle / 360) * maxValue);
-                setValue(Math.max(1, value));
+            function updateVisual() {
+                const value = getValue();
+                const angle = (value / maxValue) * 360;
                 dialEl.style.setProperty('--angle', `${angle}deg`);
 
                 // Rotate knob
@@ -421,26 +433,32 @@
                     knob.style.transform = `translateX(-50%) rotate(${angle}deg)`;
                     knob.style.transformOrigin = `center ${dialEl.offsetWidth / 2}px`;
                 }
-
-                updateDisplay();
             }
 
             function onStart(e) {
                 isDragging = true;
-                const angle = getAngleFromEvent(e);
-                updateFromAngle(angle);
+                startX = e.touches ? e.touches[0].clientX : e.clientX;
+                startValue = getValue();
                 e.preventDefault();
             }
 
             function onMove(e) {
                 if (!isDragging) return;
-                const angle = getAngleFromEvent(e);
-                updateFromAngle(angle);
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+                const deltaX = currentX - startX;
+                const deltaValue = Math.round(deltaX / sensitivity);
+                const newValue = Math.min(maxValue, Math.max(1, startValue + deltaValue));
+                setValue(newValue);
+                updateVisual();
+                updateDisplay();
                 e.preventDefault();
             }
 
             function onEnd() {
-                isDragging = false;
+                if (isDragging) {
+                    isDragging = false;
+                    saveSettings();
+                }
             }
 
             dialEl.addEventListener('mousedown', onStart);
@@ -450,14 +468,8 @@
             window.addEventListener('mouseup', onEnd);
             window.addEventListener('touchend', onEnd);
 
-            // Initialize display
-            const initialAngle = (getValue() / maxValue) * 360;
-            dialEl.style.setProperty('--angle', `${initialAngle}deg`);
-            const knob = dialEl.querySelector('.dial-knob');
-            if (knob) {
-                knob.style.transform = `translateX(-50%) rotate(${initialAngle}deg)`;
-                knob.style.transformOrigin = `center ${dialEl.offsetWidth / 2}px`;
-            }
+            // Initialize visual
+            updateVisual();
         }
 
         function formatMinutes(mins) {
