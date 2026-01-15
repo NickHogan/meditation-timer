@@ -1,11 +1,11 @@
-const CACHE_NAME = 'meditation-timer-v2';
+const CACHE_NAME = 'meditation-timer-v3';
 const ASSETS = [
-    '/',
-    '/index.html',
-    '/bell.mp3',
-    '/icon-192.png',
-    '/icon-512.png',
-    '/manifest.json'
+    './',
+    './index.html',
+    './bell.mp3',
+    './icon-192.png',
+    './icon-512.png',
+    './manifest.json'
 ];
 
 // Install event - cache all assets
