@@ -17,16 +17,21 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html, body {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
             background: #000;
-            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             color: #888;
             padding: 20px;
-            overflow: hidden;
         }
 
         .container {
@@ -190,6 +195,36 @@
         let initialSeconds = 0;
         let intervalSeconds = 0;
         let nextIntervalAt = 0;
+        let wakeLock = null;
+
+        // Wake Lock API - keeps screen on and prevents Android power saver
+        async function requestWakeLock() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Wake Lock released');
+                    });
+                    console.log('Wake Lock acquired');
+                } catch (err) {
+                    console.log('Wake Lock error:', err);
+                }
+            }
+        }
+
+        async function releaseWakeLock() {
+            if (wakeLock) {
+                await wakeLock.release();
+                wakeLock = null;
+            }
+        }
+
+        // Re-acquire wake lock when page becomes visible again
+        document.addEventListener('visibilitychange', async () => {
+            if (document.visibilityState === 'visible' && timerInterval) {
+                await requestWakeLock();
+            }
+        });
 
         // Settings persistence
         function saveSettings() {
@@ -356,7 +391,7 @@
             playOnce();
         }
 
-        function startTimer() {
+        async function startTimer() {
             totalSeconds = durationMinutes * 60;
             initialSeconds = totalSeconds;
             intervalSeconds = intervalSecs;
@@ -372,6 +407,9 @@
             timeRemaining.textContent = formatTime(totalSeconds);
             updateProgress();
 
+            // Keep screen awake
+            await requestWakeLock();
+
             playBell(1);
 
             timerInterval = setInterval(() => {
@@ -386,6 +424,8 @@
 
                 if (totalSeconds <= 0) {
                     clearInterval(timerInterval);
+                    timerInterval = null;
+                    releaseWakeLock();
                     playBell(3);
                 }
             }, 1000);
@@ -401,6 +441,7 @@
                 clearInterval(timerInterval);
                 timerInterval = null;
             }
+            releaseWakeLock();
             setupScreen.classList.remove('hidden');
             timerScreen.classList.remove('active');
         }
