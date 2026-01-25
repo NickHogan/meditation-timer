@@ -1,0 +1,11 @@
+{
+  "appId": "com.meditation.timer",
+  "appName": "Meditation Timer",
+  "webDir": "www",
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "sound": "bell.mp3"
+    }
+  }
+}

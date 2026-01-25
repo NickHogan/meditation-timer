@@ -1,0 +1,30 @@
+{
+  "name": "meditation_timer",
+  "version": "1.0.0",
+  "description": "Meditation timer with interval bells",
+  "main": "sw.js",
+  "scripts": {
+    "sync": "npx cap sync android",
+    "build": "cd android && ./gradlew assembleDebug",
+    "build:release": "cd android && ./gradlew assembleRelease",
+    "open": "npx cap open android"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NickHogan/meditation-timer.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/NickHogan/meditation-timer/issues"
+  },
+  "homepage": "https://github.com/NickHogan/meditation-timer#readme",
+  "dependencies": {
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/cli": "^8.0.1",
+    "@capacitor/core": "^8.0.1",
+    "@capacitor/local-notifications": "^8.0.0"
+  }
+}

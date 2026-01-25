@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#000000">
+    <meta name="description" content="Simple meditation timer with interval bells">
+    <title>Meditation Timer</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icon-192.png">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html, body {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 300px;
+        }
+
+        /* Control Row */
+        .control {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .control-value {
+            font-size: 0.85rem;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+            color: #888;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .control-bar {
+            flex: 1;
+            height: 32px;
+            background: #666;
+            border-radius: 4px;
+            cursor: ew-resize;
+            touch-action: none;
+        }
+
+        /* Circle Buttons */
+        .btn-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 1px solid #888;
+            background: transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 3rem auto 0;
+            transition: border-color 0.2s;
+        }
+
+        .btn-circle:hover {
+            border-color: #aaa;
+        }
+
+        .btn-circle:active {
+            border-color: #bbb;
+        }
+
+        /* Stop button - circle within circle */
+        .btn-stop-inner {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid #888;
+            background: transparent;
+            pointer-events: none;
+        }
+
+        .btn-circle:hover .btn-stop-inner {
+            border-color: #aaa;
+        }
+
+        /* Timer Screen */
+        .timer-screen {
+            display: none;
+        }
+
+        .timer-screen.active {
+            display: block;
+        }
+
+        .setup-screen.hidden {
+            display: none;
+        }
+
+        .timer-time {
+            font-size: 3rem;
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+            color: #888;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+
+        .timer-progress {
+            width: 100%;
+            height: 1px;
+            background: #1a1a1a;
+            margin: 2rem 0;
+        }
+
+        .timer-progress-bar {
+            height: 100%;
+            background: #333;
+            transition: width 1s linear;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Setup Screen -->
+        <div class="setup-screen" id="setupScreen">
+            <div class="control">
+                <div class="control-value" id="durationDisplay">10:00</div>
+                <div class="control-bar" id="barDuration"></div>
+            </div>
+
+            <div class="control">
+                <div class="control-value" id="intervalDisplay">5:00</div>
+                <div class="control-bar" id="barInterval"></div>
+            </div>
+
+            <button class="btn-circle" id="startBtn"></button>
+        </div>
+
+        <!-- Timer Screen -->
+        <div class="timer-screen" id="timerScreen">
+            <div class="timer-time" id="timeRemaining">10:00</div>
+
+            <div class="timer-progress">
+                <div class="timer-progress-bar" id="progressBar" style="width: 100%;"></div>
+            </div>
+
+            <button class="btn-circle" id="stopBtn">
+                <div class="btn-stop-inner"></div>
+            </button>
+        </div>
+    </div>
+
+    <audio id="bellSound" preload="auto">
+        <source src="bell.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        // Capacitor detection and plugin access
+        const isNative = window.Capacitor && window.Capacitor.isNativePlatform();
+        const LocalNotifications = isNative ? window.Capacitor.Plugins.LocalNotifications : null;
+
+        // Elements
+        const setupScreen = document.getElementById('setupScreen');
+        const timerScreen = document.getElementById('timerScreen');
+        const barDuration = document.getElementById('barDuration');
+        const barInterval = document.getElementById('barInterval');
+        const durationDisplay = document.getElementById('durationDisplay');
+        const intervalDisplay = document.getElementById('intervalDisplay');
+        const timeRemaining = document.getElementById('timeRemaining');
+        const progressBar = document.getElementById('progressBar');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const bellSound = document.getElementById('bellSound');
+
+        // State
+        let durationMinutes = 10;
+        let intervalSecs = 300;
+        let timerInterval = null;
+        let totalSeconds = 0;
+        let initialSeconds = 0;
+        let timerStartTime = 0;
+        let scheduledNotificationIds = [];
+
+        // Request notification permissions on startup
+        async function initNotifications() {
+            if (isNative) {
+                try {
+                    const perms = await LocalNotifications.checkPermissions();
+                    if (perms.display !== 'granted') {
+                        await LocalNotifications.requestPermissions();
+                    }
+                } catch (e) {
+                    console.log('Notification permission error:', e);
+                }
+            }
+        }
+
+        initNotifications();
+
+        // Schedule all interval bells as native notifications
+        async function scheduleNotifications() {
+            if (!isNative) return;
+
+            const notifications = [];
+            const now = Date.now();
+            let notifId = 1;
+
+            // Schedule interval bells
+            if (intervalSecs > 0) {
+                for (let t = intervalSecs; t < initialSeconds; t += intervalSecs) {
+                    notifications.push({
+                        id: notifId,
+                        title: '',
+                        body: '',
+                        sound: 'bell.mp3',
+                        schedule: { at: new Date(now + t * 1000) },
+                        smallIcon: 'ic_stat_icon'
+                    });
+                    scheduledNotificationIds.push(notifId);
+                    notifId++;
+                }
+            }
+
+            // Schedule end bells (3 bells at end)
+            for (let i = 0; i < 3; i++) {
+                notifications.push({
+                    id: notifId,
+                    title: i === 0 ? 'Meditation Complete' : '',
+                    body: '',
+                    sound: 'bell.mp3',
+                    schedule: { at: new Date(now + (initialSeconds * 1000) + (i * 2500)) },
+                    smallIcon: 'ic_stat_icon'
+                });
+                scheduledNotificationIds.push(notifId);
+                notifId++;
+            }
+
+            if (notifications.length > 0) {
+                try {
+                    await LocalNotifications.schedule({ notifications });
+                    console.log('Scheduled', notifications.length, 'notifications');
+                } catch (e) {
+                    console.log('Failed to schedule notifications:', e);
+                }
+            }
+        }
+
+        // Cancel all scheduled notifications
+        async function cancelNotifications() {
+            if (!isNative || scheduledNotificationIds.length === 0) return;
+
+            try {
+                await LocalNotifications.cancel({
+                    notifications: scheduledNotificationIds.map(id => ({ id }))
+                });
+                console.log('Cancelled notifications');
+            } catch (e) {
+                console.log('Failed to cancel notifications:', e);
+            }
+            scheduledNotificationIds = [];
+        }
+
+        // Settings persistence
+        function saveSettings() {
+            localStorage.setItem('meditationSettings', JSON.stringify({
+                duration: durationMinutes,
+                intervalSecs: intervalSecs
+            }));
+        }
+
+        function loadSettings() {
+            try {
+                const saved = localStorage.getItem('meditationSettings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    durationMinutes = settings.duration || 10;
+                    intervalSecs = settings.intervalSecs || 300;
+                }
+            } catch (e) {
+                console.log('Could not load settings:', e);
+            }
+        }
+
+        loadSettings();
+
+        // Bar interaction (horizontal drag)
+        function setupBar(barEl, getValue, setValue, maxValue, updateDisplay) {
+            let isDragging = false;
+            let startX = 0;
+            let startValue = 0;
+            const sensitivity = 2;
+
+            function onStart(e) {
+                isDragging = true;
+                startX = e.touches ? e.touches[0].clientX : e.clientX;
+                startValue = getValue();
+                e.preventDefault();
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+                const deltaX = currentX - startX;
+                const deltaValue = Math.round(deltaX / sensitivity);
+                const newValue = Math.min(maxValue, Math.max(1, startValue + deltaValue));
+                setValue(newValue);
+                updateDisplay();
+                e.preventDefault();
+            }
+
+            function onEnd() {
+                if (isDragging) {
+                    isDragging = false;
+                    saveSettings();
+                }
+            }
+
+            barEl.addEventListener('mousedown', onStart);
+            barEl.addEventListener('touchstart', onStart, { passive: false });
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchend', onEnd);
+        }
+
+        function formatMinutes(mins) {
+            return `${mins}:00`;
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function updateDurationDisplay() {
+            durationDisplay.textContent = formatMinutes(durationMinutes);
+        }
+
+        function updateIntervalDisplay() {
+            intervalDisplay.textContent = formatTime(intervalSecs);
+        }
+
+        function stepInterval(current, delta) {
+            let newVal;
+            if (current < 300) {
+                newVal = current + (delta * 15);
+                if (newVal >= 300) newVal = Math.round(newVal / 60) * 60;
+            } else {
+                newVal = current + (delta * 60);
+                if (newVal < 300) newVal = 285;
+            }
+            return Math.min(3600, Math.max(15, newVal));
+        }
+
+        setupBar(
+            barDuration,
+            () => durationMinutes,
+            (v) => { durationMinutes = v; },
+            180,
+            updateDurationDisplay
+        );
+
+        (function() {
+            const barEl = barInterval;
+            let isDragging = false;
+            let startX = 0;
+            let startValue = 0;
+            const sensitivity = 8;
+
+            function onStart(e) {
+                isDragging = true;
+                startX = e.touches ? e.touches[0].clientX : e.clientX;
+                startValue = intervalSecs;
+                e.preventDefault();
+            }
+
+            function onMove(e) {
+                if (!isDragging) return;
+                const currentX = e.touches ? e.touches[0].clientX : e.clientX;
+                const deltaX = currentX - startX;
+                const steps = Math.round(deltaX / sensitivity);
+                intervalSecs = stepInterval(startValue, steps);
+                updateIntervalDisplay();
+                e.preventDefault();
+            }
+
+            function onEnd() {
+                if (isDragging) {
+                    isDragging = false;
+                    saveSettings();
+                }
+            }
+
+            barEl.addEventListener('mousedown', onStart);
+            barEl.addEventListener('touchstart', onStart, { passive: false });
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchend', onEnd);
+        })();
+
+        updateDurationDisplay();
+        updateIntervalDisplay();
+
+        // Play bell using HTML5 audio (for web fallback and start bell)
+        function playBell(times = 1) {
+            let count = 0;
+            function playOnce() {
+                if (count < times) {
+                    bellSound.currentTime = 0;
+                    bellSound.play().catch(e => console.log('Audio play failed:', e));
+                    count++;
+                    if (count < times) {
+                        setTimeout(playOnce, 2500);
+                    }
+                }
+            }
+            playOnce();
+        }
+
+        async function startTimer() {
+            totalSeconds = durationMinutes * 60;
+            initialSeconds = totalSeconds;
+            timerStartTime = Date.now();
+
+            setupScreen.classList.add('hidden');
+            timerScreen.classList.add('active');
+            timeRemaining.textContent = formatTime(totalSeconds);
+            updateProgress();
+
+            // Schedule native notifications for bells
+            await scheduleNotifications();
+
+            // Play start bell immediately
+            playBell(1);
+
+            // Update UI every second (uses elapsed time for accuracy)
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - timerStartTime) / 1000);
+                totalSeconds = Math.max(0, initialSeconds - elapsed);
+                timeRemaining.textContent = formatTime(totalSeconds);
+                updateProgress();
+
+                // Web fallback: play bells if not native
+                if (!isNative) {
+                    const remaining = totalSeconds;
+                    if (intervalSecs > 0 && remaining > 0 && remaining % intervalSecs === 0) {
+                        playBell(1);
+                    }
+                }
+
+                if (totalSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    // Web fallback for end bells
+                    if (!isNative) {
+                        playBell(3);
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateProgress() {
+            const progress = (totalSeconds / initialSeconds) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        async function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            await cancelNotifications();
+            setupScreen.classList.remove('hidden');
+            timerScreen.classList.remove('active');
+        }
+
+        startBtn.addEventListener('click', startTimer);
+        stopBtn.addEventListener('click', stopTimer);
+
+        // Service worker for PWA (web only)
+        if (!isNative && 'serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.log('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>
